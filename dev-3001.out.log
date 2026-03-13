@@ -1,0 +1,17 @@
+
+> costos_carpi@0.1.0 dev
+> next dev --port 3001
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.56.1:3001
+- Environments: .env.local
+
+✓ Starting...
+Creating turbopack project { dir: 'C:\\Users\\Asael\\Desktop\\costos_carpi', testMode: true }
+✓ Ready in 2.3s
+ GET /login 200 in 3.0s (compile: 1945ms, proxy.ts: 162ms, render: 903ms)
+ GET /login 200 in 3.0s (compile: 2.1s, proxy.ts: 154ms, render: 802ms)
+○ Compiling /dashboard ...
+ GET /dashboard 200 in 8.6s (compile: 6.9s, proxy.ts: 366ms, render: 1349ms)
+ GET /dashboard 200 in 986ms (compile: 8ms, proxy.ts: 218ms, render: 760ms)

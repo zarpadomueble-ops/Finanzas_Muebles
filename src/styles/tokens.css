@@ -1,0 +1,20 @@
+﻿:root {
+  --background: #f4f6f8;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --muted: #64748b;
+  --border: #dbe2ea;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.dark {
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+  --surface: #101827;
+  --muted: #94a3b8;
+  --border: #1f2937;
+  --shadow-soft: 0 1px 2px rgba(2, 6, 23, 0.55), 0 8px 24px rgba(2, 6, 23, 0.3);
+}
