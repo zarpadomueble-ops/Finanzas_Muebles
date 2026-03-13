@@ -1,0 +1,298 @@
+{
+  "mode": "dry-run",
+  "generatedAt": "2026-03-13T21:07:41.953Z",
+  "effectiveDate": "2026-03-13",
+  "files": [
+    {
+      "filePath": "C:\\Users\\Asael\\Downloads\\placas_mech_faplac_import.csv",
+      "supplierName": "Faplac",
+      "totalRows": 95,
+      "duplicates": [],
+      "errors": [],
+      "summary": {
+        "imported": 95,
+        "created": 95,
+        "updated": 0,
+        "duplicated": 0,
+        "errors": 0
+      }
+    },
+    {
+      "filePath": "C:\\Users\\Asael\\Downloads\\herrajes_grupoeuro_mech_import.csv",
+      "supplierName": "Grupo Euro",
+      "totalRows": 669,
+      "duplicates": [
+        {
+          "rowNumber": 28,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-gola-c__negro-x3mts__negro"
+        },
+        {
+          "rowNumber": 30,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-cano-oval__negro-x3mts__negro"
+        },
+        {
+          "rowNumber": 52,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-tapacanto-aluminio__puntera-18mm-mate__mate"
+        },
+        {
+          "rowNumber": 69,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-gola-c__anodizado-x3mts__"
+        },
+        {
+          "rowNumber": 71,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-gola-c__negro-x3mts__negro"
+        },
+        {
+          "rowNumber": 72,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-gola-c__negro-x3mts__negro"
+        },
+        {
+          "rowNumber": 74,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-gola-c__anodizado-x3mts-mini__"
+        },
+        {
+          "rowNumber": 106,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-mc-xl__18mm-x3mts__"
+        },
+        {
+          "rowNumber": 108,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-mc-xl__tapa-cromo-mate-para-manija__cromo-mate"
+        },
+        {
+          "rowNumber": 117,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-mcd18__tapa-cromo-mate-para-manija__cromo-mate"
+        },
+        {
+          "rowNumber": 178,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-kit-colgante-sistema-doble-sicco-negro__1-puerta-x-2mts__"
+        },
+        {
+          "rowNumber": 180,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-kit-colgante-sistema-doble-sicco-negro__1-puerta-x-3mts__"
+        },
+        {
+          "rowNumber": 267,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-euroslim-altura-127mm__largo-400mm-blanco-antra__blanco-antracita"
+        },
+        {
+          "rowNumber": 269,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-euroslim-altura-127mm__largo-450mm-blanco-antra__blanco-antracita"
+        },
+        {
+          "rowNumber": 271,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-euroslim-altura-127mm__largo-500mm-blanco-antra__blanco-antracita"
+        },
+        {
+          "rowNumber": 278,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "grupo-euro-euroslim-riel-frente-interno__alt-178mm-blanco-antra__blanco-antracita"
+        },
+        {
+          "rowNumber": 294,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-cazoleta-cierre-suave-35mm-eurohard__35mm-c-0__"
+        },
+        {
+          "rowNumber": 296,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-cazoleta-cierre-suave-35mm-eurohard__35mm-c-9__"
+        },
+        {
+          "rowNumber": 318,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__250mm__"
+        },
+        {
+          "rowNumber": 320,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__300mm__"
+        },
+        {
+          "rowNumber": 322,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__350mm__"
+        },
+        {
+          "rowNumber": 324,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__400mm__"
+        },
+        {
+          "rowNumber": 326,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__450mm__"
+        },
+        {
+          "rowNumber": 328,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__500mm__"
+        },
+        {
+          "rowNumber": 330,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__550mm__"
+        },
+        {
+          "rowNumber": 332,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-eurohard__600mm__"
+        },
+        {
+          "rowNumber": 334,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopica-std-eurohard__300mm__"
+        },
+        {
+          "rowNumber": 336,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopica-std-eurohard__350mm__"
+        },
+        {
+          "rowNumber": 338,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopica-std-eurohard__400mm__"
+        },
+        {
+          "rowNumber": 340,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopica-std-eurohard__450mm__"
+        },
+        {
+          "rowNumber": 342,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopica-std-eurohard__500mm__"
+        },
+        {
+          "rowNumber": 344,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopica-std-eurohard__550mm__"
+        },
+        {
+          "rowNumber": 346,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__300mm__"
+        },
+        {
+          "rowNumber": 348,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__350mm__"
+        },
+        {
+          "rowNumber": 350,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__400mm__"
+        },
+        {
+          "rowNumber": 352,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__450mm__"
+        },
+        {
+          "rowNumber": 354,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__500mm__"
+        },
+        {
+          "rowNumber": 356,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__550mm__"
+        },
+        {
+          "rowNumber": 358,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-cierre-suave-eurohard__600mm__"
+        },
+        {
+          "rowNumber": 364,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-telescopicas-push-open__500mm__"
+        },
+        {
+          "rowNumber": 368,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-guias-z__300mm__"
+        },
+        {
+          "rowNumber": 370,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-guias-z__350mm__"
+        },
+        {
+          "rowNumber": 372,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-guias-z__400mm__"
+        },
+        {
+          "rowNumber": 374,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-guias-z__450mm__"
+        },
+        {
+          "rowNumber": 375,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-guias-z__500mm__"
+        },
+        {
+          "rowNumber": 390,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-pasacables__blanco-c-cepillo-80mm__blanco"
+        },
+        {
+          "rowNumber": 392,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-pasacables__negro-c-cepillo-80mm__negro"
+        },
+        {
+          "rowNumber": 393,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-pasacables__plata-c-cepillo-80mm__plata"
+        },
+        {
+          "rowNumber": 485,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-patas-plasticas__clip-p-madera__"
+        },
+        {
+          "rowNumber": 487,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-patas-plasticas__clip-p-aluminio__aluminio"
+        },
+        {
+          "rowNumber": 580,
+          "reason": "duplicado_en_archivo",
+          "uniqueSlugKey": "mech-tapa-tornilllo-autoadhesiva-x-50u__letra-de-la-a-a-la-z__"
+        }
+      ],
+      "errors": [],
+      "summary": {
+        "imported": 618,
+        "created": 618,
+        "updated": 0,
+        "duplicated": 51,
+        "errors": 0
+      }
+    }
+  ],
+  "summary": {
+    "imported": 713,
+    "created": 713,
+    "updated": 0,
+    "duplicated": 51,
+    "errors": 0
+  }
+}

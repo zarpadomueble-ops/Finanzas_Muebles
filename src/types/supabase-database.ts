@@ -1302,6 +1302,59 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["material_price_import_rows"]["Insert"]>;
       };
+      material_price_catalog_items: {
+        Row: PeriodStampedRow & {
+          id: string;
+          profile_id: string;
+          supplier_id: string;
+          latest_price_list_id: string | null;
+          latest_import_id: string | null;
+          source_filename: string | null;
+          nombre: string;
+          descripcion: string;
+          color: string | null;
+          precio: number;
+          currency: string;
+          slug_nombre: string;
+          slug_descripcion: string;
+          slug_color: string;
+          unique_slug_key: string;
+          raw_payload: Json;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          created_by: string | null;
+          updated_by: string | null;
+          deleted_at: string | null;
+          deleted_by: string | null;
+        };
+        Insert: PeriodStampedInsert & {
+          id?: string;
+          profile_id: string;
+          supplier_id: string;
+          latest_price_list_id?: string | null;
+          latest_import_id?: string | null;
+          source_filename?: string | null;
+          nombre: string;
+          descripcion: string;
+          color?: string | null;
+          precio?: number;
+          currency?: string;
+          slug_nombre: string;
+          slug_descripcion: string;
+          slug_color?: string;
+          unique_slug_key: string;
+          raw_payload?: Json;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          created_by?: string | null;
+          updated_by?: string | null;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["material_price_catalog_items"]["Insert"]>;
+      };
       attachments: {
         Row: {
           id: string;

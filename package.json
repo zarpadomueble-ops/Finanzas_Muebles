@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "import:price-catalogs": "node scripts/import-price-catalogs.mjs",
     "supabase:version": "npx supabase --version",
     "supabase:link": "npx supabase link --project-ref iyvibeqrfufabgbamwsr",
     "supabase:push": "npx supabase db push",

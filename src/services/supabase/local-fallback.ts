@@ -73,6 +73,7 @@ const PERIOD_ENABLED_TABLES = new Set<PublicTableName>([
   "material_price_lists",
   "material_price_imports",
   "material_price_import_rows",
+  "material_price_catalog_items",
 ]);
 
 const RELATION_FOREIGN_KEYS: Partial<Record<PublicTableName, Partial<Record<PublicTableName, string>>>> = {
@@ -115,6 +116,11 @@ const RELATION_FOREIGN_KEYS: Partial<Record<PublicTableName, Partial<Record<Publ
   material_price_import_rows: {
     materials: "matched_material_id",
     material_price_imports: "import_id",
+  },
+  material_price_catalog_items: {
+    material_price_imports: "latest_import_id",
+    material_price_lists: "latest_price_list_id",
+    suppliers: "supplier_id",
   },
   material_price_imports: {
     material_price_lists: "price_list_id",
@@ -901,6 +907,7 @@ function buildSeedDatabase(scopeId: string): LocalDatabaseState {
     material_price_lists: [],
     material_price_imports: [],
     material_price_import_rows: [],
+    material_price_catalog_items: [],
     attachments: [],
   };
 
@@ -1308,6 +1315,18 @@ function ensureInsertDefaults(table: PublicTableName, payload: LocalRow) {
     base.validation_errors = base.validation_errors ?? [];
     base.previous_material_snapshot = base.previous_material_snapshot ?? null;
     base.result_material_snapshot = base.result_material_snapshot ?? null;
+  }
+
+  if (table === "material_price_catalog_items") {
+    base.latest_price_list_id = base.latest_price_list_id ?? null;
+    base.latest_import_id = base.latest_import_id ?? null;
+    base.source_filename = base.source_filename ?? null;
+    base.color = base.color ?? null;
+    base.precio = base.precio ?? 0;
+    base.currency = base.currency ?? "ARS";
+    base.slug_color = base.slug_color ?? "";
+    base.raw_payload = base.raw_payload ?? {};
+    base.is_active = base.is_active ?? true;
   }
 
   if (table === "purchases") {
