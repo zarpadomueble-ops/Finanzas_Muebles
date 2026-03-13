@@ -68,6 +68,12 @@ export const APP_NAVIGATION: ModuleNavigationItem[] = [
     description: "Márgenes y equilibrio",
   },
   {
+    key: "finanzas",
+    label: "Finanzas",
+    href: "/finanzas",
+    description: "Caja, ingresos y egresos",
+  },
+  {
     key: "configuracion",
     label: "Configuración",
     href: "/configuracion",

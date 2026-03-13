@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   SlidersHorizontal,
+  Wallet,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const defaultSidebarModuleIcons: Record<AppModuleKey, LucideIcon> = {
   presupuestos: FileText,
   obras: KanbanSquare,
   rentabilidad: TrendingUp,
+  finanzas: Wallet,
   configuracion: Settings,
 };
 

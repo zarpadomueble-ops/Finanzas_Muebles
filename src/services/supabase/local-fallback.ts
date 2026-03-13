@@ -44,14 +44,44 @@ interface LocalQueryResult<T = unknown> {
   error: PostgrestError | null;
 }
 
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 const STORAGE_KEY_PREFIX = "carpi-erp-local-db";
 const LOCAL_ERROR_CODE = "PGRST205";
+const PERIOD_ENABLED_TABLES = new Set<PublicTableName>([
+  "settings",
+  "clients",
+  "suppliers",
+  "materials",
+  "material_price_history",
+  "custom_projects",
+  "custom_project_materials",
+  "custom_project_labor",
+  "ecommerce_products",
+  "ecommerce_product_materials",
+  "ecommerce_product_processes",
+  "cut_jobs",
+  "cut_job_parts",
+  "cut_job_layouts",
+  "purchases",
+  "purchase_items",
+  "budgets",
+  "budget_items",
+  "jobs_board",
+  "attachments",
+  "categories",
+  "financial_transactions",
+  "material_price_lists",
+  "material_price_imports",
+  "material_price_import_rows",
+]);
 
 const RELATION_FOREIGN_KEYS: Partial<Record<PublicTableName, Partial<Record<PublicTableName, string>>>> = {
   budgets: {
     clients: "client_id",
     custom_projects: "custom_project_id",
+  },
+  categories: {
+    categories: "parent_id",
   },
   custom_project_materials: {
     materials: "material_id",
@@ -70,7 +100,27 @@ const RELATION_FOREIGN_KEYS: Partial<Record<PublicTableName, Partial<Record<Publ
     clients: "client_id",
     custom_projects: "custom_project_id",
   },
+  financial_transactions: {
+    budgets: "budget_id",
+    categories: "category_id",
+    clients: "client_id",
+    custom_projects: "custom_project_id",
+    jobs_board: "job_id",
+    purchases: "purchase_id",
+    suppliers: "supplier_id",
+  },
   materials: {
+    suppliers: "supplier_id",
+  },
+  material_price_import_rows: {
+    materials: "matched_material_id",
+    material_price_imports: "import_id",
+  },
+  material_price_imports: {
+    material_price_lists: "price_list_id",
+    suppliers: "supplier_id",
+  },
+  material_price_lists: {
     suppliers: "supplier_id",
   },
   purchase_items: {
@@ -113,6 +163,47 @@ function addDays(isoDate: string, days: number) {
   const date = new Date(`${isoDate}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+function toIsoDate(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  return value.includes("T") ? value.slice(0, 10) : value;
+}
+
+function inferRecordDate(row: LocalRow) {
+  return (
+    toIsoDate(row.record_date) ??
+    toIsoDate(row.fecha_alta) ??
+    toIsoDate(row.effective_from) ??
+    toIsoDate(row.fecha) ??
+    toIsoDate(row.fecha_emision) ??
+    toIsoDate(row.fecha_inicio) ??
+    toIsoDate(row.fecha_prometida) ??
+    toIsoDate(row.effective_date) ??
+    toIsoDate(row.started_at) ??
+    toIsoDate(row.created_at) ??
+    new Date().toISOString().slice(0, 10)
+  );
+}
+
+function stampPeriodFields(table: PublicTableName, row: LocalRow) {
+  if (!PERIOD_ENABLED_TABLES.has(table)) {
+    return row;
+  }
+
+  const recordDate = inferRecordDate(row);
+  const [yearPart, monthPart] = recordDate.split("-");
+
+  return {
+    ...row,
+    record_date: recordDate,
+    month: Number(monthPart),
+    year: Number(yearPart),
+    period_key: `${yearPart}-${monthPart}`,
+  };
 }
 
 function mapLegacyBudgetStatus(value: string) {
@@ -176,6 +267,19 @@ function buildSeedDatabase(scopeId: string): LocalDatabaseState {
     margen_perimetral_placa_mm: seed.settings.margenPerimetralPlacaMm,
     permitir_rotacion_por_defecto: seed.settings.permitirRotacionPorDefecto,
     veta_obligatoria_por_defecto: seed.settings.vetaObligatoriaPorDefecto,
+    business_name: "Carpi ERP",
+    business_legal_name: "Carpi ERP",
+    tax_id: null,
+    phone: null,
+    email: seed.users[0]?.email ?? null,
+    address: null,
+    city: null,
+    province: null,
+    base_currency: "ARS",
+    default_income_tax_pct: 0,
+    default_vat_pct: 21,
+    default_profit_pct: 30,
+    indirect_costs_notes: null,
     is_active: true,
     notes: null,
     created_at: settingsUpdatedAt,
@@ -214,6 +318,12 @@ function buildSeedDatabase(scopeId: string): LocalDatabaseState {
     telefono: normalizeNullableString(supplier.telefono),
     email: normalizeNullableString(supplier.email),
     ciudad: normalizeNullableString(supplier.ciudad),
+    codigo: null,
+    contacto: null,
+    cuit: null,
+    condicion_iva: null,
+    observaciones: null,
+    is_primary: false,
     created_at: supplier.createdAt,
     updated_at: supplier.createdAt,
     created_by: scopeId,
@@ -550,6 +660,8 @@ function buildSeedDatabase(scopeId: string): LocalDatabaseState {
       whatsapp_text: null,
     } satisfies Record<string, unknown>,
     locked_at: null,
+    financial_sync_status: budget.status === "aprobado" ? "linked" : "pending",
+    financial_transaction_id: null,
     created_at: budget.createdAt,
     updated_at: budget.createdAt,
     created_by: scopeId,
@@ -598,6 +710,8 @@ function buildSeedDatabase(scopeId: string): LocalDatabaseState {
     impuestos_snapshot: 0,
     total_snapshot: normalizeNumber(purchase.total),
     notas: null,
+    financial_sync_status: "pending",
+    financial_transaction_id: null,
     created_at: purchase.createdAt,
     updated_at: purchase.createdAt,
     created_by: scopeId,
@@ -658,31 +772,145 @@ function buildSeedDatabase(scopeId: string): LocalDatabaseState {
     deleted_by: null,
   }));
 
+  const financeCategories = [
+    { id: createId(), code: "income_sales", name: "Ventas", direction: "income", sort_order: 1 },
+    { id: createId(), code: "income_advance", name: "Anticipos", direction: "income", sort_order: 2 },
+    { id: createId(), code: "income_other", name: "Otros ingresos", direction: "income", sort_order: 9 },
+    { id: createId(), code: "expense_materials", name: "Compra de materiales", direction: "expense", sort_order: 1 },
+    { id: createId(), code: "expense_suppliers", name: "Pago a proveedores", direction: "expense", sort_order: 2 },
+    { id: createId(), code: "expense_tax", name: "Impuestos", direction: "expense", sort_order: 8 },
+    { id: createId(), code: "expense_other", name: "Otros egresos", direction: "expense", sort_order: 9 },
+  ].map<LocalRow>((category) => ({
+    ...category,
+    profile_id: scopeId,
+    domain: "finance",
+    parent_id: null,
+    description: null,
+    is_system: true,
+    is_active: true,
+    created_at: settingsUpdatedAt,
+    updated_at: settingsUpdatedAt,
+    created_by: scopeId,
+    updated_by: scopeId,
+    deleted_at: null,
+    deleted_by: null,
+  }));
+
+  const categoryIdByCode = new Map(
+    financeCategories.map((category) => [String(category.code), String(category.id)]),
+  );
+
+  const financialTransactions = [
+    ...seed.financialRecords.map<LocalRow>((record) => {
+      const relatedBudget = budgets.find((budget) => {
+        if (record.source === "custom_project") {
+          return budget.custom_project_id === record.sourceId;
+        }
+
+        return budget.ecommerce_product_id === record.sourceId;
+      });
+
+      return {
+        id: record.id,
+        profile_id: scopeId,
+        type: "income",
+        category_id: categoryIdByCode.get("income_sales") ?? null,
+        subcategory: record.canal,
+        description: `Ingreso ${record.nombre}`,
+        amount: normalizeNumber(record.precio),
+        currency: "ARS",
+        exchange_rate_to_base: 1,
+        amount_base: normalizeNumber(record.precio),
+        payment_method: "transferencia",
+        status: "collected",
+        client_id: relatedBudget?.client_id ?? null,
+        supplier_id: null,
+        custom_project_id: record.source === "custom_project" ? record.sourceId : null,
+        budget_id: relatedBudget?.id ?? null,
+        job_id: null,
+        purchase_id: null,
+        source_module: record.source === "custom_project" ? "presupuestos" : "ecommerce",
+        source_type: record.source,
+        source_id: record.sourceId,
+        notes: null,
+        record_date: record.fecha,
+        created_at: `${record.fecha}T12:00:00.000Z`,
+        updated_at: `${record.fecha}T12:00:00.000Z`,
+        created_by: scopeId,
+        updated_by: scopeId,
+        deleted_at: null,
+        deleted_by: null,
+      };
+    }),
+    ...purchases.map<LocalRow>((purchase) => ({
+      id: createId(),
+      profile_id: scopeId,
+      type: "expense",
+      category_id: categoryIdByCode.get("expense_materials") ?? null,
+      subcategory: purchase.source_type,
+      description: `Egreso compra ${String(purchase.id).slice(0, 8).toUpperCase()}`,
+      amount: normalizeNumber(Number(purchase.total_snapshot ?? 0)),
+      currency: "ARS",
+      exchange_rate_to_base: 1,
+      amount_base: normalizeNumber(Number(purchase.total_snapshot ?? 0)),
+      payment_method: "transferencia",
+      status: purchase.status === "purchased" ? "paid" : "pending",
+      client_id: null,
+      supplier_id: purchase.supplier_id ?? null,
+      custom_project_id: purchase.source_type === "custom_project" ? purchase.source_id ?? null : null,
+      budget_id: null,
+      job_id: purchase.source_type === "cut_job" ? purchase.source_id ?? null : null,
+      purchase_id: purchase.id,
+      source_module: "compras",
+      source_type: purchase.source_type ?? null,
+      source_id: purchase.source_id ?? null,
+      notes: purchase.notas ?? null,
+      record_date: String(purchase.fecha_emision),
+      created_at: String(purchase.created_at),
+      updated_at: String(purchase.updated_at),
+      created_by: scopeId,
+      updated_by: scopeId,
+      deleted_at: null,
+      deleted_by: null,
+    })),
+  ];
+
+  const tables: LocalTableStore = {
+    profiles: [profileRow],
+    settings: [settingsRow],
+    clients,
+    suppliers,
+    materials,
+    material_price_history: materialPriceHistory,
+    custom_projects: customProjects,
+    custom_project_materials: customProjectMaterials,
+    custom_project_labor: customProjectLabor,
+    ecommerce_products: ecommerceProducts,
+    ecommerce_product_materials: ecommerceProductMaterials,
+    ecommerce_product_processes: ecommerceProductProcesses,
+    cut_jobs: cutJobs,
+    cut_job_parts: cutJobParts,
+    cut_job_layouts: cutJobLayouts,
+    purchases,
+    purchase_items: purchaseItems,
+    budgets,
+    budget_items: budgetItems,
+    jobs_board: jobsBoard,
+    categories: financeCategories,
+    financial_transactions: financialTransactions,
+    material_price_lists: [],
+    material_price_imports: [],
+    material_price_import_rows: [],
+    attachments: [],
+  };
+
+  for (const table of Object.keys(tables) as PublicTableName[]) {
+    tables[table] = tables[table].map((row) => stampPeriodFields(table, row));
+  }
+
   return {
     version: STORAGE_VERSION,
-    tables: {
-      profiles: [profileRow],
-      settings: [settingsRow],
-      clients,
-      suppliers,
-      materials,
-      material_price_history: materialPriceHistory,
-      custom_projects: customProjects,
-      custom_project_materials: customProjectMaterials,
-      custom_project_labor: customProjectLabor,
-      ecommerce_products: ecommerceProducts,
-      ecommerce_product_materials: ecommerceProductMaterials,
-      ecommerce_product_processes: ecommerceProductProcesses,
-      cut_jobs: cutJobs,
-      cut_job_parts: cutJobParts,
-      cut_job_layouts: cutJobLayouts,
-      purchases,
-      purchase_items: purchaseItems,
-      budgets,
-      budget_items: budgetItems,
-      jobs_board: jobsBoard,
-      attachments: [],
-    },
+    tables,
   };
 }
 
@@ -994,6 +1222,11 @@ function ensureInsertDefaults(table: PublicTableName, payload: LocalRow) {
   if (table === "settings") {
     base.is_active = base.is_active ?? true;
     base.notes = base.notes ?? null;
+    base.base_currency = base.base_currency ?? "ARS";
+    base.default_income_tax_pct = base.default_income_tax_pct ?? 0;
+    base.default_vat_pct = base.default_vat_pct ?? 21;
+    base.default_profit_pct = base.default_profit_pct ?? 30;
+    base.indirect_costs_notes = base.indirect_costs_notes ?? null;
   }
 
   if (table === "cut_jobs") {
@@ -1005,7 +1238,89 @@ function ensureInsertDefaults(table: PublicTableName, payload: LocalRow) {
     base.status = base.status ?? "draft";
   }
 
-  return base;
+  if (table === "categories") {
+    base.domain = base.domain ?? "finance";
+    base.direction = base.direction ?? "both";
+    base.description = base.description ?? null;
+    base.is_system = base.is_system ?? false;
+    base.is_active = base.is_active ?? true;
+    base.sort_order = base.sort_order ?? 0;
+  }
+
+  if (table === "financial_transactions") {
+    const amount = normalizeNumber(Number(base.amount ?? 0));
+    const exchangeRate = normalizeNumber(Number(base.exchange_rate_to_base ?? 1), 1) || 1;
+    base.type = base.type ?? "expense";
+    base.category_id = base.category_id ?? null;
+    base.subcategory = base.subcategory ?? null;
+    base.description = base.description ?? "Movimiento";
+    base.amount = amount;
+    base.currency = base.currency ?? "ARS";
+    base.exchange_rate_to_base = exchangeRate;
+    base.amount_base =
+      base.amount_base !== undefined ? normalizeNumber(Number(base.amount_base)) : round(amount * exchangeRate, 2);
+    base.payment_method = base.payment_method ?? null;
+    base.status = base.status ?? "pending";
+    base.client_id = base.client_id ?? null;
+    base.supplier_id = base.supplier_id ?? null;
+    base.custom_project_id = base.custom_project_id ?? null;
+    base.budget_id = base.budget_id ?? null;
+    base.job_id = base.job_id ?? null;
+    base.purchase_id = base.purchase_id ?? null;
+    base.source_module = base.source_module ?? null;
+    base.source_type = base.source_type ?? null;
+    base.source_id = base.source_id ?? null;
+    base.notes = base.notes ?? null;
+  }
+
+  if (table === "material_price_lists") {
+    base.currency = base.currency ?? "ARS";
+    base.status = base.status ?? "draft";
+    base.source_filename = base.source_filename ?? null;
+    base.checksum = base.checksum ?? null;
+    base.notes = base.notes ?? null;
+  }
+
+  if (table === "material_price_imports") {
+    base.strategy = base.strategy ?? "update_matched_only";
+    base.column_mapping = base.column_mapping ?? {};
+    base.detected_columns = base.detected_columns ?? [];
+    base.summary_total_rows = base.summary_total_rows ?? 0;
+    base.summary_inserted = base.summary_inserted ?? 0;
+    base.summary_updated = base.summary_updated ?? 0;
+    base.summary_ignored = base.summary_ignored ?? 0;
+    base.summary_failed = base.summary_failed ?? 0;
+    base.imported_by = base.imported_by ?? profileId;
+    base.started_at = base.started_at ?? timestamp;
+    base.finished_at = base.finished_at ?? null;
+    base.rolled_back_at = base.rolled_back_at ?? null;
+    base.rollback_of_import_id = base.rollback_of_import_id ?? null;
+    base.status = base.status ?? "running";
+    base.source_filename = base.source_filename ?? null;
+  }
+
+  if (table === "material_price_import_rows") {
+    base.action = base.action ?? "ignored";
+    base.match_type = base.match_type ?? "none";
+    base.matched_material_id = base.matched_material_id ?? null;
+    base.raw_row = base.raw_row ?? {};
+    base.normalized_row = base.normalized_row ?? {};
+    base.validation_errors = base.validation_errors ?? [];
+    base.previous_material_snapshot = base.previous_material_snapshot ?? null;
+    base.result_material_snapshot = base.result_material_snapshot ?? null;
+  }
+
+  if (table === "purchases") {
+    base.financial_sync_status = base.financial_sync_status ?? "pending";
+    base.financial_transaction_id = base.financial_transaction_id ?? null;
+  }
+
+  if (table === "budgets") {
+    base.financial_sync_status = base.financial_sync_status ?? "pending";
+    base.financial_transaction_id = base.financial_transaction_id ?? null;
+  }
+
+  return stampPeriodFields(table, base);
 }
 
 function getPayloadRows(state: QueryState) {
@@ -1028,7 +1343,7 @@ function getPayloadRows(state: QueryState) {
   return [];
 }
 
-function applyUpdate(row: LocalRow, patch: LocalRow) {
+function applyUpdate(table: PublicTableName, row: LocalRow, patch: LocalRow) {
   const next: LocalRow = {
     ...row,
     ...patch,
@@ -1043,7 +1358,7 @@ function applyUpdate(row: LocalRow, patch: LocalRow) {
     next.deleted_by = row.deleted_by;
   }
 
-  return next;
+  return stampPeriodFields(table, next);
 }
 
 function executeSelect(database: LocalDatabaseState, state: QueryState): LocalQueryResult {
@@ -1073,7 +1388,7 @@ function executeUpdate(database: LocalDatabaseState, state: QueryState): LocalQu
       return row;
     }
 
-    const next = applyUpdate(row, patch);
+    const next = applyUpdate(state.table, row, patch);
     updated.push(next);
     return next;
   });
@@ -1106,7 +1421,7 @@ function executeUpsert(database: LocalDatabaseState, state: QueryState, scopeId:
     );
 
     if (existingIndex >= 0) {
-      const next = applyUpdate(database.tables[state.table][existingIndex], normalized);
+      const next = applyUpdate(state.table, database.tables[state.table][existingIndex], normalized);
       database.tables[state.table][existingIndex] = next;
       affected.push(next);
     } else {

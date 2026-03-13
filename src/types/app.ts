@@ -10,6 +10,7 @@
   | "presupuestos"
   | "obras"
   | "rentabilidad"
+  | "finanzas"
   | "configuracion";
 
 export type AppUserRole = "admin" | "ventas" | "produccion" | "lectura";

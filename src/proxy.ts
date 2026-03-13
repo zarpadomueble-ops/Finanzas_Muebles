@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { isSafeInternalPath } from "@/features/auth/services/role.service";
 import { refreshAuthSession } from "@/services/supabase/middleware-client";
 
@@ -13,7 +13,7 @@ function mergeResponseCookies(source: NextResponse, target: NextResponse) {
   return target;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const { response, user } = await refreshAuthSession(request);
 
@@ -40,4 +40,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
 };
-

@@ -17,6 +17,7 @@ const ROLE_MODULE_ACCESS: ModuleAccessMap = {
     "presupuestos",
     "obras",
     "rentabilidad",
+    "finanzas",
     "configuracion",
   ],
   ventas: [
@@ -26,8 +27,9 @@ const ROLE_MODULE_ACCESS: ModuleAccessMap = {
     "ecommerce",
     "presupuestos",
     "rentabilidad",
+    "finanzas",
   ],
-  produccion: ["dashboard", "materiales", "proyectos", "corte", "compras", "obras"],
+  produccion: ["dashboard", "materiales", "proyectos", "corte", "compras", "obras", "finanzas"],
   lectura: [
     "dashboard",
     "clientes",
@@ -40,6 +42,7 @@ const ROLE_MODULE_ACCESS: ModuleAccessMap = {
     "presupuestos",
     "obras",
     "rentabilidad",
+    "finanzas",
     "configuracion",
   ],
 };

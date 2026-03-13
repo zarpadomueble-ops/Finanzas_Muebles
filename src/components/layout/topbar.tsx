@@ -3,6 +3,7 @@
 import { ChevronsLeft, ChevronsRight, Menu } from "lucide-react";
 import { useState } from "react";
 import { LogoutButton } from "@/features/auth/components";
+import { PeriodSelector } from "@/components/layout/period-selector";
 import { SearchInput } from "@/components/forms/search-input";
 import { Badge } from "@/components/ui/badge";
 import type { AppShellUser } from "@/types";
@@ -49,6 +50,9 @@ export function Topbar({ user, isSidebarCollapsed, onToggleSidebar, onOpenMobile
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="hidden xl:block">
+            <PeriodSelector />
+          </div>
           <div className="hidden rounded-md border border-slate-200 px-3 py-1.5 text-right sm:block">
             <p className="text-xs text-slate-500">{user.email}</p>
             <div className="mt-0.5 flex items-center justify-end gap-2">

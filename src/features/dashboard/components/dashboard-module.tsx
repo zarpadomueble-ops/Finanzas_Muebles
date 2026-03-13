@@ -19,6 +19,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/feedback";
 import { KPIStatCard, ModuleHeader, SectionCard } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { getDashboardOverviewRecord } from "@/features/dashboard/actions";
+import { usePeriodFilter } from "@/hooks";
 import { formatCurrencyValue, formatNumberValue, formatPercentValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -30,9 +31,10 @@ function formatCompactLabel(label: string, maxLength = 18) {
 }
 
 export function DashboardModule() {
+  const { filter, periodLabel } = usePeriodFilter();
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["dashboard-overview"],
-    queryFn: getDashboardOverviewRecord,
+    queryKey: ["dashboard-overview", filter.period_key ?? filter.month, filter.year],
+    queryFn: () => getDashboardOverviewRecord(filter),
     staleTime: 60_000,
   });
 
@@ -73,7 +75,7 @@ export function DashboardModule() {
     <div className="space-y-4">
       <ModuleHeader
         title="Dashboard"
-        description="KPIs operativos y financieros construidos sobre presupuestos, obras, optimizaciones y consumos reales."
+        description={`KPIs operativos y financieros construidos para ${periodLabel}, con filtros mensuales globales.`}
         action={
           <Button type="button" variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
             <RefreshCcw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
