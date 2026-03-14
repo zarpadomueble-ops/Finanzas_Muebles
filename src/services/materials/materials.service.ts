@@ -10,6 +10,7 @@ import { getSupabaseBrowserClient, hasSupabaseConfig } from "@/services/supabase
 const MATERIALS_TABLE = "materials" as const;
 const SUPPLIERS_TABLE = "suppliers" as const;
 const MATERIAL_PRICE_HISTORY_TABLE = "material_price_history" as const;
+const MATERIAL_PRICE_CATALOG_ITEMS_TABLE = "material_price_catalog_items" as const;
 const MATERIALS_SELECT = "*, supplier:suppliers(id, nombre)";
 
 type QueryResponse<T> = {
@@ -43,6 +44,7 @@ export type MaterialInsert = TableInsert<typeof MATERIALS_TABLE>;
 export type MaterialUpdate = TableUpdate<typeof MATERIALS_TABLE>;
 type SupplierRow = TableRow<typeof SUPPLIERS_TABLE>;
 export type MaterialPriceHistoryRecord = TableRow<typeof MATERIAL_PRICE_HISTORY_TABLE>;
+type MaterialPriceCatalogItemRow = TableRow<typeof MATERIAL_PRICE_CATALOG_ITEMS_TABLE>;
 type MaterialPriceHistoryInsert = TableInsert<typeof MATERIAL_PRICE_HISTORY_TABLE>;
 
 export type MaterialSupplierPreview = Pick<SupplierRow, "id" | "nombre">;
@@ -98,6 +100,10 @@ function normalizeString(value: string | null | undefined) {
   return normalized ? normalized : null;
 }
 
+function collapseWhitespace(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
 function normalizeOptionalString(value: string | null | undefined) {
   if (value === undefined) {
     return undefined;
@@ -140,6 +146,76 @@ function numbersAreEqual(a: number | null | undefined, b: number | null | undefi
 
 function isUuidLike(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function inferCatalogMaterialCategory(item: Pick<MaterialPriceCatalogItemRow, "nombre" | "descripcion" | "source_filename">) {
+  const fingerprint = `${item.nombre} ${item.descripcion} ${item.source_filename ?? ""}`.toLowerCase();
+
+  if (
+    fingerprint.includes("placa") ||
+    fingerprint.includes("faplac") ||
+    /\b\d{3,5}\s*[x×]\s*\d{3,5}\s*mm\b/i.test(fingerprint)
+  ) {
+    return "placas";
+  }
+
+  if (
+    fingerprint.includes("herraje") ||
+    fingerprint.includes("grupo euro") ||
+    fingerprint.includes("grupoeuro")
+  ) {
+    return "herrajes";
+  }
+
+  return "insumos";
+}
+
+function extractCatalogBoardDimensions(description: string) {
+  const match = description.match(/(\d{3,5})\s*[x×]\s*(\d{3,5})\s*mm/i);
+  if (!match) {
+    return { largo_mm: null, ancho_mm: null };
+  }
+
+  return {
+    largo_mm: Number(match[1]),
+    ancho_mm: Number(match[2]),
+  };
+}
+
+function extractCatalogBoardThickness(description: string) {
+  const segments = description.split(",").map((segment) => collapseWhitespace(segment));
+  for (const segment of segments.slice(1)) {
+    const match = segment.match(/^(\d+(?:[.,]\d+)?)\s*mm\b/i);
+    if (match) {
+      const value = Number(match[1].replace(",", "."));
+      if (Number.isFinite(value)) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildCatalogMaterialCode(item: Pick<MaterialPriceCatalogItemRow, "unique_slug_key">) {
+  return `catalog:${item.unique_slug_key}`;
+}
+
+function buildCatalogMaterialNotes(item: Pick<MaterialPriceCatalogItemRow, "descripcion" | "color" | "source_filename">) {
+  const description = collapseWhitespace(item.descripcion);
+  const color = collapseWhitespace(item.color);
+  const sourceName = collapseWhitespace(item.source_filename);
+  const segments = [description];
+
+  if (color) {
+    segments.push(`Color: ${color}`);
+  }
+
+  if (sourceName) {
+    segments.push(`Origen: ${sourceName}`);
+  }
+
+  return segments.filter(Boolean).join(" | ");
 }
 
 function mapMaterialInsertPayload(input: MaterialMutationInput, userId: string): MaterialInsert {
@@ -372,6 +448,107 @@ async function updateMaterialWithContext(
   return response.data;
 }
 
+async function syncCatalogItemsIntoMaterials(context: AuthorizedContext): Promise<boolean> {
+  const [catalogResponse, existingResponse] = (await Promise.all([
+    context.client
+      .from(MATERIAL_PRICE_CATALOG_ITEMS_TABLE as never)
+      .select("id, supplier_id, source_filename, nombre, descripcion, color, precio, unique_slug_key, is_active")
+      .eq("profile_id", context.userId)
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false }),
+    context.client
+      .from(MATERIALS_TABLE as never)
+      .select("id, codigo")
+      .eq("profile_id", context.userId),
+  ])) as [
+    QueryResponse<
+      Array<
+        Pick<
+          MaterialPriceCatalogItemRow,
+          | "id"
+          | "supplier_id"
+          | "source_filename"
+          | "nombre"
+          | "descripcion"
+          | "color"
+          | "precio"
+          | "unique_slug_key"
+          | "is_active"
+        >
+      >
+    >,
+    QueryResponse<Array<Pick<MaterialRow, "id" | "codigo">>>,
+  ];
+
+  if (catalogResponse.error) {
+    throw new Error(catalogResponse.error.message);
+  }
+
+  if (existingResponse.error) {
+    throw new Error(existingResponse.error.message);
+  }
+
+  const catalogItems = catalogResponse.data ?? [];
+  if (catalogItems.length === 0) {
+    return false;
+  }
+
+  const materialByCode = new Map<string, string>(
+    (existingResponse.data ?? []).map((item) => [item.codigo.trim().toLowerCase(), item.id]),
+  );
+
+  let hasChanges = false;
+
+  for (const item of catalogItems) {
+    const category = inferCatalogMaterialCategory(item);
+    const description = collapseWhitespace(item.descripcion);
+    const dimensions =
+      category === "placas"
+        ? extractCatalogBoardDimensions(description)
+        : { largo_mm: null, ancho_mm: null };
+    const code = buildCatalogMaterialCode(item).trim().toLowerCase();
+    const payload: MaterialMutationInput = {
+      codigo: buildCatalogMaterialCode(item),
+      nombre: collapseWhitespace(item.nombre),
+      categoria: category,
+      unidad: "unidad",
+      costo_unitario: normalizeMoney(Number(item.precio ?? 0)),
+      supplier_id: item.supplier_id,
+      marca: null,
+      espesor_mm: category === "placas" ? extractCatalogBoardThickness(description) : null,
+      largo_mm: dimensions.largo_mm,
+      ancho_mm: dimensions.ancho_mm,
+      tiene_veta: false,
+      activo: Boolean(item.is_active),
+      favorito: false,
+      observaciones: buildCatalogMaterialNotes(item),
+    };
+
+    const existingId = materialByCode.get(code);
+
+    if (existingId) {
+      await updateMaterialWithContext(context, existingId, payload, {
+        change_reason: "Sincronizacion automatica desde catalogo de precios",
+        restore_if_deleted: true,
+      });
+    } else {
+      const created = await createMaterialWithContext(context, payload, {
+        change_reason: "Sincronizacion automatica desde catalogo de precios",
+      });
+      materialByCode.set(code, created.id);
+    }
+
+    hasChanges = true;
+  }
+
+  return hasChanges;
+}
+
+function shouldAttemptCatalogSync(filters: MaterialsListFilters) {
+  return !filters.search?.trim() && !filters.categoria && !filters.unidad && !filters.supplier_id;
+}
+
 export const materialsService = {
   async list(filters: MaterialsListFilters = {}): Promise<MaterialRecord[]> {
     const { client, userId } = await getAuthorizedContext();
@@ -425,7 +602,16 @@ export const materialsService = {
       throw new Error(response.error.message);
     }
 
-    return response.data ?? [];
+    const records = response.data ?? [];
+
+    if (records.length === 0 && shouldAttemptCatalogSync(filters)) {
+      const synced = await syncCatalogItemsIntoMaterials({ client, userId });
+      if (synced) {
+        return this.list(filters);
+      }
+    }
+
+    return records;
   },
 
   async getById(materialId: string, includeDeleted = true): Promise<MaterialRecord | null> {

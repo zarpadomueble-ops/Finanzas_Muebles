@@ -117,6 +117,22 @@ const DEFAULT_FINANCE_CATEGORIES: FinanceCategorySeed[] = [
   { code: "expense_other", name: "Otros egresos", direction: "expense", sort_order: 9 },
 ];
 
+async function listFinanceCategories(context: Awaited<ReturnType<typeof getAuthorizedBrowserContext>>) {
+  const response = (await context.client
+    .from(CATEGORIES_TABLE as never)
+    .select("*")
+    .eq("profile_id", context.userId)
+    .eq("domain", "finance")
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: true })) as QueryResponse<FinancialCategoryRow[]>;
+
+  if (response.error) {
+    throw new Error(response.error.message);
+  }
+
+  return response.data ?? [];
+}
+
 function roundAmount(value: number, digits = 2) {
   const multiplier = 10 ** digits;
   return Math.round(value * multiplier) / multiplier;
@@ -183,20 +199,7 @@ function toMetricRecord(row: FinanceTransactionRecord): FinanceMetricRecord {
 
 async function ensureDefaultCategories() {
   const context = await getAuthorizedBrowserContext();
-
-  const existingResponse = (await context.client
-    .from(CATEGORIES_TABLE as never)
-    .select("*")
-    .eq("profile_id", context.userId)
-    .eq("domain", "finance")
-    .is("deleted_at", null)
-    .order("sort_order", { ascending: true })) as QueryResponse<FinancialCategoryRow[]>;
-
-  if (existingResponse.error) {
-    throw new Error(existingResponse.error.message);
-  }
-
-  const existing = existingResponse.data ?? [];
+  const existing = await listFinanceCategories(context);
   const existingCodes = new Set(existing.map((category) => category.code));
   const missing = DEFAULT_FINANCE_CATEGORIES.filter((category) => !existingCodes.has(category.code));
 
@@ -204,9 +207,9 @@ async function ensureDefaultCategories() {
     return existing;
   }
 
-  const insertedResponse = (await context.client
+  const upsertResponse = (await context.client
     .from(CATEGORIES_TABLE as never)
-    .insert(
+    .upsert(
       missing.map(
         (category) =>
           ({
@@ -219,18 +222,25 @@ async function ensureDefaultCategories() {
             is_system: true,
             is_active: true,
             sort_order: category.sort_order,
+            deleted_at: null,
+            deleted_by: null,
             created_by: context.userId,
             updated_by: context.userId,
           }) as TableInsert<typeof CATEGORIES_TABLE>,
       ) as never,
+      {
+        onConflict: "profile_id,domain,code",
+      } as never,
     )
     .select("*")) as QueryResponse<FinancialCategoryRow[]>;
 
-  if (insertedResponse.error) {
-    throw new Error(insertedResponse.error.message);
+  if (upsertResponse.error) {
+    throw new Error(upsertResponse.error.message);
   }
 
-  return [...existing, ...(insertedResponse.data ?? [])].sort((left, right) => {
+  const refreshed = await listFinanceCategories(context);
+
+  return refreshed.sort((left, right) => {
     if (left.sort_order !== right.sort_order) {
       return left.sort_order - right.sort_order;
     }

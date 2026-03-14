@@ -6,6 +6,7 @@ import { executeLocalQuery, shouldFallbackToLocal } from "./local-fallback";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const DATA_MODE_STORAGE_KEY = "carpi-erp-supabase-data-mode";
+const LOCAL_MODE_RECHECK_MS = 15_000;
 
 type QueryOperation = "select" | "insert" | "update" | "delete" | "upsert";
 type ResultMode = "many" | "single" | "maybeSingle";
@@ -86,7 +87,33 @@ function readPersistedDataMode(): DataMode {
   }
 
   const storedValue = window.sessionStorage.getItem(getDataModeStorageKey());
-  return storedValue === "local" ? "local" : "unknown";
+  if (!storedValue) {
+    return "unknown";
+  }
+
+  if (storedValue === "local") {
+    window.sessionStorage.removeItem(getDataModeStorageKey());
+    return "unknown";
+  }
+
+  try {
+    const parsed = JSON.parse(storedValue) as {
+      mode?: DataMode;
+      checkedAt?: number;
+    };
+
+    if (
+      parsed.mode === "local" &&
+      typeof parsed.checkedAt === "number" &&
+      Date.now() - parsed.checkedAt < LOCAL_MODE_RECHECK_MS
+    ) {
+      return "local";
+    }
+  } catch {
+    window.sessionStorage.removeItem(getDataModeStorageKey());
+  }
+
+  return "unknown";
 }
 
 function persistDataMode(nextMode: DataMode) {
@@ -95,7 +122,13 @@ function persistDataMode(nextMode: DataMode) {
   }
 
   if (nextMode === "local") {
-    window.sessionStorage.setItem(getDataModeStorageKey(), nextMode);
+    window.sessionStorage.setItem(
+      getDataModeStorageKey(),
+      JSON.stringify({
+        mode: nextMode,
+        checkedAt: Date.now(),
+      }),
+    );
     return;
   }
 
@@ -205,6 +238,7 @@ class HybridQuery implements PromiseLike<QueryResult> {
       const remoteResult = await this.executeRemote();
       if (!remoteResult.error) {
         dataMode = "remote";
+        persistDataMode("remote");
         return remoteResult;
       }
 
@@ -251,6 +285,7 @@ class HybridQuery implements PromiseLike<QueryResult> {
       return "local";
     }
 
+    persistDataMode("remote");
     return "remote";
   }
 

@@ -312,7 +312,7 @@ export function MaterialsModule() {
 
     try {
       const rows = await parseCsvFile(file);
-      const result = await importMaterialsCsvRecords(rows);
+      const result = await importMaterialsCsvRecords(rows, { sourceName: file.name });
 
       const baseMessage = `Importacion finalizada. Creados: ${result.created}, actualizados: ${result.updated}, fallidos: ${result.failed}.`;
       const errorDetails =
